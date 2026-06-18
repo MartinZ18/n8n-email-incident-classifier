@@ -1,0 +1,760 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1-5vSCeGOaFDzPv818dnqk-xJI1K7nKs7n6wmjEXEpBU",
+          "mode": "list",
+          "cachedResultName": "Base de datos Comunidad",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-5vSCeGOaFDzPv818dnqk-xJI1K7nKs7n6wmjEXEpBU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2129931395,
+          "mode": "list",
+          "cachedResultName": "Hoja 2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-5vSCeGOaFDzPv818dnqk-xJI1K7nKs7n6wmjEXEpBU/edit#gid=2129931395"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "tipo(P/N)": "={{ $json.sentiment }}",
+            "impacto": "=impacto = SIN_IMPACTO",
+            "timestamp": "={{ $json.processed_at }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tipo(P/N)",
+              "displayName": "tipo(P/N)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "impacto",
+              "displayName": "impacto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1408,
+        32
+      ],
+      "id": "a6e8e385-b974-4e95-a37a-b7d6d9f5ca02",
+      "name": "Agregar  incidentes positivos a la tabla",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QvqZDWErYLPCz1tO",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "q": "subject: INCIDENTE ITU"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        208,
+        -96
+      ],
+      "id": "67eb688b-48fb-486e-b351-e0d90a5d4ff6",
+      "name": "Trigger - Nuevos Incidentes ITU",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "4OlN9kTCdq3Q7n86",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4a4a3502-8b08-4898-b9f8-fc244b65cafa",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "a6994900-3947-48ed-adbb-c4fd66476325",
+              "name": "subject",
+              "value": "={{ $json.Subject }}",
+              "type": "string"
+            },
+            {
+              "id": "31ce2c29-7b61-456a-850b-d67ba71abdde",
+              "name": "from",
+              "value": "={{ $json.From }}",
+              "type": "string"
+            },
+            {
+              "id": "fa052866-2c4a-4004-b9a5-4dfe4fca6864",
+              "name": "text",
+              "value": "={{ $json.snippet }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        432,
+        -96
+      ],
+      "id": "735576b1-6b10-4be4-b16f-aaf9f513cd6b",
+      "name": "Normalizar Email"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Id: {{ $json.id }}\nSubject: {{ $json.subject }}\nFrom: {{ $json.from }}\nBody: {{ $json.text }}",
+        "options": {
+          "systemMessage": "=Sos un clasificador estricto de incidentes técnicos.\n\nTu tarea es analizar el INCIDENTE reportado en el email y clasificar su sentimiento general.\n\nINSTRUCCIONES CRÍTICAS:\n- Respondé SOLO un JSON válido.\n- Debe estar en UNA sola línea.\n- NO uses Markdown.\n- NO uses ```json.\n- NO agregues texto adicional.\n- NO expliques tu decisión.\n- NO incluyas comentarios.\n- El campo \"sentiment\" debe ser EXACTAMENTE uno de estos valores en MAYÚSCULAS:\n  POSITIVO\n  NEGATIVO\n- Nunca devuelvas otro valor.\n- Siempre elegí una de las dos opciones aunque haya dudas.\n\nFORMATO EXACTO (una sola línea):\n{\"sentiment\":\"POSITIVO\"}\n\nAnalizá únicamente el contenido del incidente, ignorando saludos, firmas o texto irrelevante.\n\nContexto del email:\nSubject: {{ $json.subject }}\nFrom: {{ $json.from }}\nBody: {{ $json.text }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "20fddba6-8f55-48f7-8d27-fc235673724d",
+      "name": "Clasificar Sentimiento",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n\n  const raw = item.json.output;\n\n  let sentiment = null;\n  let parsed = null;\n\n  try {\n    parsed = typeof raw === \"string\" ? JSON.parse(raw) : raw;\n\n    if (parsed && typeof parsed === \"object\") {\n      sentiment = parsed.sentiment ?? null;\n    }\n\n  } catch (error) {\n    sentiment = null;\n  }\n\n  return {\n    json: {\n      ...item.json,\n      sentiment,\n      sentiment_ok: sentiment === \"NEGATIVO\" || sentiment === \"POSITIVO\",\n      processed_at: new Date().toLocaleString(\"es-AR\", {\n  timeZone: \"America/Argentina/Buenos_Aires\"\n})\n\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        -192
+      ],
+      "id": "abcbac29-6375-4260-a50e-7c49f1046cb9",
+      "name": "Validar Sentimiento (Parser)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "680b6716-86cd-4b84-b10d-c1b00b4b9578",
+              "leftValue": "={{ $json.sentiment }}",
+              "rightValue": "NEGATIVO",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1184,
+        -272
+      ],
+      "id": "ccdaffc8-866d-485e-b733-3cf4ac9d9e13",
+      "name": "¿Es Incidente Negativo?"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1-5vSCeGOaFDzPv818dnqk-xJI1K7nKs7n6wmjEXEpBU",
+          "mode": "list",
+          "cachedResultName": "Base de datos Comunidad",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-5vSCeGOaFDzPv818dnqk-xJI1K7nKs7n6wmjEXEpBU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 549967298,
+          "mode": "list",
+          "cachedResultName": "Hoja 3",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-5vSCeGOaFDzPv818dnqk-xJI1K7nKs7n6wmjEXEpBU/edit#gid=549967298"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "timestamp": "={{ new Date().toLocaleString(\"es-AR\", { timeZone: \"America/Argentina/Buenos_Aires\" }) }}",
+            "error": "={{ $json.error }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        944,
+        112
+      ],
+      "id": "738a6aae-caac-46f7-bdab-da00e0a07608",
+      "name": "Error logs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QvqZDWErYLPCz1tO",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1-5vSCeGOaFDzPv818dnqk-xJI1K7nKs7n6wmjEXEpBU",
+          "mode": "list",
+          "cachedResultName": "Base de datos Comunidad",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-5vSCeGOaFDzPv818dnqk-xJI1K7nKs7n6wmjEXEpBU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 549967298,
+          "mode": "list",
+          "cachedResultName": "Hoja 3",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-5vSCeGOaFDzPv818dnqk-xJI1K7nKs7n6wmjEXEpBU/edit#gid=549967298"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $json.processed_at }}",
+            "error": "={{ $json.error }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1760,
+        -320
+      ],
+      "id": "8346141b-cb85-4f76-a274-1a8765821605",
+      "name": "Error logs1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QvqZDWErYLPCz1tO",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.output }}",
+        "options": {
+          "systemMessage": "=Sos un analizador estricto de impacto de incidentes técnicos.\n\nTu tarea es evaluar la gravedad del incidente y devolver un resumen estructurado.\n\nINSTRUCCIONES CRÍTICAS:\n- Respondé SOLO un JSON válido.\n- Debe estar en UNA sola línea.\n- NO uses Markdown.\n- NO uses ```json.\n- NO agregues texto adicional.\n- NO expliques nada fuera del JSON.\n- NO incluyas saltos de línea innecesarios.\n\nFORMATO EXACTO (una sola línea):\n{\"summary\":\"...\",\"impact_level\":\"BAJO|MEDIO|ALTO\",\"action\":\"...\"}\n\nREGLAS DE CLASIFICACIÓN:\n- BAJO: problema menor, sin impacto operativo significativo.\n- MEDIO: afecta funcionamiento, requiere revisión o seguimiento.\n- ALTO: grave, urgente, posible interrupción crítica o riesgo importante.\n\nREGLAS ADICIONALES:\n- \"summary\" máximo 160 caracteres.\n- \"impact_level\" debe ser exactamente BAJO, MEDIO o ALTO (mayúsculas).\n- \"action\" debe ser una acción concreta en imperativo.\n- No inventes datos que no estén implícitos en el email.\n\nDatos disponibles:\nsentiment: {{ $json.sentiment }}\n\nEmail:\nSubject: {{ $('Trigger - Nuevos Incidentes ITU').item.json.Subject }}\nFrom: {{ $('Trigger - Nuevos Incidentes ITU').item.json.From }}\nBody: {{ $('Trigger - Nuevos Incidentes ITU').item.json.snippet }}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1424,
+        -496
+      ],
+      "id": "55fb5481-7211-4750-b1ee-09aa0a7da03e",
+      "name": "Analizar Impacto",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "function extractJsonString(raw) {\n  if (raw == null) return \"\";\n  let s = String(raw).trim();\n  const fenceMatch = s.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/i);\n  if (fenceMatch && fenceMatch[1]) s = fenceMatch[1].trim();\n  const start = s.indexOf(\"{\");\n  const end = s.lastIndexOf(\"}\");\n  if (start !== -1 && end !== -1 && end > start) s = s.slice(start, end + 1);\n  return s;\n}\n\nreturn items.map(item => {\n  const raw = item.json.output;\n\n  let summary = null;\n  let impact_level = null;\n  let action = null;\n\n  try {\n    const jsonStr = extractJsonString(raw);\n    const parsed = JSON.parse(jsonStr);\n    summary = parsed?.summary ?? null;\n    impact_level = parsed?.impact_level ?? parsed?.impacto ?? null;\n    action = parsed?.action ?? null;\n  } catch (e) {\n    summary = typeof raw === \"string\" ? raw : JSON.stringify(raw);\n  }\n\n  const impact_norm = (impact_level ?? \"\").toString().toUpperCase();\n\n  // ✅ TRAER CONTEXTO DE NODOS ANTERIORES (los que sí tienen esos datos)\n  const base = $(\"Normalizar Email\").item.json;          // subject/from/text/id\n  const sent = $(\"Validar Sentimiento (Parser)\").item.json;    // sentiment (el parser de sentimiento)\n\n  return {\n    json: {\n      // mantenemos lo que ya venía\n      ...item.json,\n\n      // ✅ reinyectamos datos faltantes\n      id: base.id ?? item.json.id,\n      subject: base.subject ?? item.json.subject,\n      from: base.from ?? item.json.from,\n      text: base.text ?? item.json.text,\n      sentiment: sent.sentiment ?? item.json.sentiment,\n      processed_at: sent.processed_at\n      ?? item.json.processed_at\n      ?? new Date().toLocaleString(\"es-AR\", { timeZone: \"America/Argentina/Buenos_Aires\" }),\n\n\n\n      // lo parseado del impacto\n      summary,\n      impact_level: impact_norm || null,\n      action,\n      impact_ok: [\"BAJO\", \"MEDIO\", \"ALTO\"].includes(impact_norm)\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1808,
+        -576
+      ],
+      "id": "ce8db9cc-b0d4-40fc-b467-68cab9732947",
+      "name": "Validar Impacto (Parser)"
+    },
+    {
+      "parameters": {
+        "chatId": "-4995572775",
+        "text": "={{\n  \"🚨 INCIDENTE DETECTADO\\n\" +\n  \"Asunto: \" + ($json.subject ?? \"N/A\") + \"\\n\" +\n  \"De: \" + ($json.from ?? \"N/A\") + \"\\n\" +\n  \"Sentimiento: \" + ($json.sentiment ?? \"N/A\") + \"\\n\" +\n  \"Impacto: \" + ($json.impact_level ?? \"N/A\") + \"\\n\\n\" +\n  \"Resumen: \" + ($json.summary ?? \"N/A\") + \"\\n\" +\n  \"Acción: \" + ($json.action ?? \"N/A\")\n}}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2032,
+        -656
+      ],
+      "id": "a841ef56-5a37-41c1-937a-3245084b454a",
+      "name": "Notificar Incidente Crítico (Telegram)",
+      "webhookId": "c605123c-b1cd-4499-bb6b-417fc3e4e80a",
+      "credentials": {
+        "telegramApi": {
+          "id": "51U7ctcmQdhoO1ov",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1-5vSCeGOaFDzPv818dnqk-xJI1K7nKs7n6wmjEXEpBU",
+          "mode": "list",
+          "cachedResultName": "Base de datos Comunidad",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-5vSCeGOaFDzPv818dnqk-xJI1K7nKs7n6wmjEXEpBU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2129931395,
+          "mode": "list",
+          "cachedResultName": "Hoja 2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-5vSCeGOaFDzPv818dnqk-xJI1K7nKs7n6wmjEXEpBU/edit#gid=2129931395"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "impacto": "={{ $('Validar Impacto (Parser)').item.json.impact_level }}",
+            "tipo(P/N)": "={{ $('Validar Impacto (Parser)').item.json.sentiment }}",
+            "timestamp": "={{ $('Validar Impacto (Parser)').item.json.processed_at }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tipo(P/N)",
+              "displayName": "tipo(P/N)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "impacto",
+              "displayName": "impacto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2032,
+        -480
+      ],
+      "id": "bb9a3cb6-3b96-4db0-8473-c7a9adb27b0a",
+      "name": "Registrar Incidente Negativo (Sheets)",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "QvqZDWErYLPCz1tO",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Trigger - Nuevos Incidentes ITU').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2240,
+        -480
+      ],
+      "id": "32fc995e-e6cb-4a90-9461-9188d2789715",
+      "name": "marcar mensaje leido negativo",
+      "webhookId": "844a10be-aaca-4fdc-bfa1-c9f35394f3cf",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "4OlN9kTCdq3Q7n86",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Trigger - Nuevos Incidentes ITU').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1648,
+        32
+      ],
+      "id": "f70efbda-c291-41fd-b11b-e283c12dc1ef",
+      "name": "Marcar mensaje leido positivo",
+      "webhookId": "844a10be-aaca-4fdc-bfa1-c9f35394f3cf",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "4OlN9kTCdq3Q7n86",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:3b",
+        "options": {
+          "topK": 40,
+          "topP": 1,
+          "repeatPenalty": 1.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        624,
+        96
+      ],
+      "id": "27acf68a-9271-4f20-afa4-c13df851c16c",
+      "name": "LLM - Sentimiento (Ollama)",
+      "credentials": {
+        "ollamaApi": {
+          "id": "henSGy72aCjD6HrI",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:3b",
+        "options": {
+          "topK": 40,
+          "topP": 1,
+          "repeatPenalty": 1.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        -272
+      ],
+      "id": "c3aa1e9e-084d-48e9-b88d-22c729f45063",
+      "name": "LLM - Impacto (Ollama)",
+      "credentials": {
+        "ollamaApi": {
+          "id": "henSGy72aCjD6HrI",
+          "name": "Ollama account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Agregar  incidentes positivos a la tabla": {
+      "main": [
+        [
+          {
+            "node": "Marcar mensaje leido positivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger - Nuevos Incidentes ITU": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Email": {
+      "main": [
+        [
+          {
+            "node": "Clasificar Sentimiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificar Sentimiento": {
+      "main": [
+        [
+          {
+            "node": "Validar Sentimiento (Parser)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Sentimiento (Parser)": {
+      "main": [
+        [
+          {
+            "node": "¿Es Incidente Negativo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es Incidente Negativo?": {
+      "main": [
+        [
+          {
+            "node": "Analizar Impacto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agregar  incidentes positivos a la tabla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analizar Impacto": {
+      "main": [
+        [
+          {
+            "node": "Validar Impacto (Parser)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error logs1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Impacto (Parser)": {
+      "main": [
+        [
+          {
+            "node": "Notificar Incidente Crítico (Telegram)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Registrar Incidente Negativo (Sheets)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificar Incidente Crítico (Telegram)": {
+      "main": [
+        []
+      ]
+    },
+    "Registrar Incidente Negativo (Sheets)": {
+      "main": [
+        [
+          {
+            "node": "marcar mensaje leido negativo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM - Sentimiento (Ollama)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Clasificar Sentimiento",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM - Impacto (Ollama)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analizar Impacto",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "America/Argentina/Buenos_Aires",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "034066dc-a922-4246-a90f-ddad77d33acb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dfa0d81a4e1836ed15df81d77c8eabf474f030be2222ad8b24f336cf2840cf67"
+  },
+  "id": "7eabOkdqRi7F8dfN",
+  "tags": []
+}
