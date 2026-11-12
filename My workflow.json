@@ -22,7 +22,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "tipo(P/N)": "={{ $json.sentiment }}",
-            "impacto": "=impacto = SIN_IMPACTO",
+            "impacto": "SIN_IMPACTO",
             "timestamp": "={{ $json.processed_at }}"
           },
           "matchingColumns": [
